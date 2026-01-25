@@ -60,6 +60,7 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
   bool _isRefreshing = false;
 
   Timer? _throttleTimer;
+  bool _isScrollToBottomScheduled = false;
   Set<int> _lastReadPostNumbers = {};
 
   @override
@@ -504,9 +505,15 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
       if (next.typingUsers.isNotEmpty || next.hasNewReplies) {
         if (_throttleTimer?.isActive ?? false) return;
         _throttleTimer = Timer(const Duration(milliseconds: 200), () {
-          if (mounted) {
-            _scrollController.scrollToBottomIfNeeded();
-          }
+          if (!mounted) return;
+          if (_isScrollToBottomScheduled) return;
+          _isScrollToBottomScheduled = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _isScrollToBottomScheduled = false;
+            if (mounted) {
+              _scrollController.scrollToBottomIfNeeded();
+            }
+          });
         });
       }
     });

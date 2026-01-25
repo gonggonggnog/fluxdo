@@ -41,6 +41,15 @@ class TopicListNotifier extends AsyncNotifier<List<Topic>> {
         }
         return preloadedData.topics;
       }
+      if (preloadedService.hasInitialTopicList) {
+        final asyncPreloaded = await preloadedService.getInitialTopicList();
+        if (asyncPreloaded != null) {
+          if (asyncPreloaded.topics.isEmpty) {
+            _hasMore = false;
+          }
+          return asyncPreloaded.topics;
+        }
+      }
     }
 
     // 如果没有预加载数据，走正常的异步流程

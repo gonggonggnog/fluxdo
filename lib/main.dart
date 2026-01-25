@@ -178,21 +178,25 @@ class _MainPageState extends ConsumerState<MainPage> {
         }
       });
     });
-    _currentUserSub = ref.listenManual<AsyncValue<User?>>(currentUserProvider, (_, next) {
-      final user = next.value;
-      if (user != null && !_messageBusInitialized) {
-        _messageBusInitialized = true;
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) return;
+    _currentUserSub = ref.listenManual<AsyncValue<User?>>(
+      currentUserProvider,
+      (_, next) {
+        final user = next.value;
+        if (user != null && !_messageBusInitialized) {
+          _messageBusInitialized = true;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            _messageBusSub?.close();
+            _messageBusSub = ref.listenManual<void>(messageBusInitProvider, (_, __) {});
+          });
+        } else if (user == null) {
+          _messageBusInitialized = false;
           _messageBusSub?.close();
-          _messageBusSub = ref.listenManual<void>(messageBusInitProvider, (_, __) {});
-        });
-      } else if (user == null) {
-        _messageBusInitialized = false;
-        _messageBusSub?.close();
-        _messageBusSub = null;
-      }
-    });
+          _messageBusSub = null;
+        }
+      },
+      fireImmediately: true,
+    );
   }
 
   Future<void> _autoCheckUpdate() async {

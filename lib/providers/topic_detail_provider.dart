@@ -128,6 +128,7 @@ class TopicDetailNotifier extends AsyncNotifier<TopicDetail> {
           canVote: currentDetail.canVote,
           voteCount: currentDetail.voteCount,
           userVoted: currentDetail.userVoted,
+          lastReadPostNumber: currentDetail.lastReadPostNumber,
         );
       });
     } finally {
@@ -197,6 +198,7 @@ class TopicDetailNotifier extends AsyncNotifier<TopicDetail> {
           canVote: currentDetail.canVote,
           voteCount: currentDetail.voteCount,
           userVoted: currentDetail.userVoted,
+          lastReadPostNumber: currentDetail.lastReadPostNumber,
         );
       });
     } finally {
@@ -269,6 +271,7 @@ class TopicDetailNotifier extends AsyncNotifier<TopicDetail> {
         canVote: newDetail.canVote,
         voteCount: newDetail.voteCount,
         userVoted: newDetail.userVoted,
+        lastReadPostNumber: currentDetail.lastReadPostNumber,
       ));
     } catch (e) {
       print('[TopicDetail] 加载新回复失败: $e');
@@ -342,6 +345,7 @@ class TopicDetailNotifier extends AsyncNotifier<TopicDetail> {
         likeCount: currentDetail.likeCount,
         createdAt: currentDetail.createdAt,
         visible: currentDetail.visible,
+        lastReadPostNumber: currentDetail.lastReadPostNumber,
       ));
     } catch (e) {
       print('[TopicDetail] 刷新帖子 $postId 失败: $e');
@@ -372,6 +376,7 @@ class TopicDetailNotifier extends AsyncNotifier<TopicDetail> {
       likeCount: currentDetail.likeCount,
       createdAt: currentDetail.createdAt,
       visible: currentDetail.visible,
+      lastReadPostNumber: currentDetail.lastReadPostNumber,
     ));
   }
 
@@ -450,6 +455,7 @@ class TopicDetailNotifier extends AsyncNotifier<TopicDetail> {
       likeCount: currentDetail.likeCount,
       createdAt: currentDetail.createdAt,
       visible: currentDetail.visible,
+      lastReadPostNumber: currentDetail.lastReadPostNumber,
     ));
   }
 
@@ -515,6 +521,7 @@ class TopicDetailNotifier extends AsyncNotifier<TopicDetail> {
       likeCount: currentDetail.likeCount,
       createdAt: currentDetail.createdAt,
       visible: currentDetail.visible,
+      lastReadPostNumber: currentDetail.lastReadPostNumber,
     ));
   }
 
@@ -620,6 +627,7 @@ class TopicDetailNotifier extends AsyncNotifier<TopicDetail> {
         likeCount: currentDetail.likeCount,
         createdAt: currentDetail.createdAt,
         visible: currentDetail.visible,
+        lastReadPostNumber: currentDetail.lastReadPostNumber,
       ));
 
       // 返回目标帖子的索引

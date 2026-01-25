@@ -1,7 +1,9 @@
 import 'dart:convert';
+import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show compute;
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import '../constants.dart';
 import '../models/topic.dart';
 import '../models/category.dart';
@@ -29,6 +31,7 @@ class PreloadedDataService {
   Map<String, dynamic>? _topicTrackingStateMeta;
   Map<String, dynamic>? _topicListData;  // 首页话题列表原始数据
   TopicListResponse? _cachedTopicListResponse;  // 缓存的已解析话题列表
+  Completer<TopicListResponse?>? _topicListResponseCompleter;
   List<Map<String, dynamic>>? _customEmoji;  // 自定义 emoji
   List<Map<String, dynamic>>? _topicTrackingStates;  // 话题追踪状态
   List<String>? _enabledReactions;
@@ -182,23 +185,38 @@ class PreloadedDataService {
   /// 返回 TopicListResponse 或 null
   Future<TopicListResponse?> getInitialTopicList() async {
     await _ensureLoaded();
-    if (_topicListData == null) return null;
+    if (_cachedTopicListResponse != null) {
+      final response = _cachedTopicListResponse;
+      _cachedTopicListResponse = null;
+      _topicListData = null;
+      _topicListResponseCompleter = null;
+      return response;
+    }
+    if (_topicListData == null && _topicListResponseCompleter == null) return null;
 
     try {
-      final response = _cachedTopicListResponse ?? TopicListResponse.fromJson(_topicListData!);
-      _cachedTopicListResponse ??= response;
-      // 消费后清除，避免重复使用过期数据
+      if (_cachedTopicListResponse == null && _topicListResponseCompleter != null) {
+        await _topicListResponseCompleter!.future;
+      }
+      if (_cachedTopicListResponse == null) return null;
+      final response = _cachedTopicListResponse;
+      _cachedTopicListResponse = null;
       _topicListData = null;
+      _topicListResponseCompleter = null;
       return response;
     } catch (e) {
       debugPrint('[PreloadedData] 解析 topic_list 失败: $e');
       _topicListData = null;
+      _topicListResponseCompleter = null;
       return null;
     }
   }
 
   /// 检查是否有预加载的话题列表可用
-  bool get hasInitialTopicList => _cachedTopicListResponse != null;
+  bool get hasInitialTopicList =>
+      _cachedTopicListResponse != null ||
+      _topicListData != null ||
+      _topicListResponseCompleter != null;
 
   /// 同步获取预加载的话题列表（如果已加载）
   /// 返回 TopicListResponse 或 null
@@ -208,6 +226,7 @@ class PreloadedDataService {
     final response = _cachedTopicListResponse;
     _cachedTopicListResponse = null;  // 消费后清除
     _topicListData = null;
+    _topicListResponseCompleter = null;
     return response;
   }
 
@@ -219,6 +238,7 @@ class PreloadedDataService {
     _site = null;
     _topicListData = null;
     _cachedTopicListResponse = null;
+    _topicListResponseCompleter = null;
     _customEmoji = null;
     _topicTrackingStates = null;
     _enabledReactions = null;
@@ -234,6 +254,7 @@ class PreloadedDataService {
     _site = null;
     _topicListData = null;
     _cachedTopicListResponse = null;
+    _topicListResponseCompleter = null;
     _customEmoji = null;
     _topicTrackingStates = null;
     _topicTrackingStateMeta = null;
@@ -476,14 +497,20 @@ class PreloadedDataService {
   }
 
   void _parseTopicListResponseAsync(Map<String, dynamic> data) {
-    Future(() {
+    if (_topicListResponseCompleter != null && !_topicListResponseCompleter!.isCompleted) {
+      return;
+    }
+    _topicListResponseCompleter = Completer<TopicListResponse?>();
+    SchedulerBinding.instance.scheduleTask(() {
       try {
         _cachedTopicListResponse = TopicListResponse.fromJson(data);
         debugPrint('[PreloadedData] TopicListResponse 异步缓存成功');
+        _topicListResponseCompleter?.complete(_cachedTopicListResponse);
       } catch (e) {
         debugPrint('[PreloadedData] 异步解析 TopicListResponse 失败: $e');
+        _topicListResponseCompleter?.complete(null);
       }
-    });
+    }, Priority.idle, debugLabel: 'PreloadedDataService.parseTopicListResponse');
   }
 }
 
