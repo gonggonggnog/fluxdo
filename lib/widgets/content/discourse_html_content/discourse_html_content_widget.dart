@@ -232,12 +232,12 @@ class _DiscourseHtmlContentState extends State<DiscourseHtmlContent> {
         }
 
         // 2. 解析 linux.do 内部话题链接
-        // 支持格式: https://linux.do/t/topic/123 或 https://linux.do/t/some-slug/123
-        final topicMatch = RegExp(r'linux\.do/t/(?:[^/]+/)?(\d+)').firstMatch(url);
+        // 支持格式: https://linux.do/t/topic/123, /t/topic/123 或 https://linux.do/t/some-slug/123
+        final topicMatch = RegExp(r'(?:linux\.do)?/t/(?:[^/]+/)?(\d+)').firstMatch(url);
         if (topicMatch != null && widget.onInternalLinkTap != null) {
           final topicId = int.parse(topicMatch.group(1)!);
           // 尝试提取 slug (如果有的话)
-          final slugMatch = RegExp(r'linux\.do/t/([^/]+)/\d+').firstMatch(url);
+          final slugMatch = RegExp(r'(?:linux\.do)?/t/([^/]+)/\d+').firstMatch(url);
           final slug = (slugMatch != null && slugMatch.group(1) != 'topic')
               ? slugMatch.group(1)
               : null;
@@ -304,6 +304,11 @@ class _DiscourseHtmlContentState extends State<DiscourseHtmlContent> {
         compact: true,
         textStyle: textStyle,
         galleryImages: _galleryImages,
+        onInternalLinkTap: widget.onInternalLinkTap,
+        post: widget.post,
+        linkCounts: widget.linkCounts,
+        mentionedUsers: widget.mentionedUsers,
+        enableSelectionArea: widget.enableSelectionArea,
       );
     }
 

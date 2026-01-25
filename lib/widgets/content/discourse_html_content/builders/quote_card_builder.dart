@@ -11,6 +11,22 @@ Widget buildQuoteCard({
   final username = element.attributes['data-username'] ?? '引用';
   final imgElement = element.querySelector('img.avatar');
   final avatarUrl = imgElement?.attributes['src'] ?? '';
+    final titleElement = element.querySelector('.quote-title__text-content');
+  String? titleHtml;
+  String? categoryHtml;
+  if (titleElement != null) {
+    final categoryElement =
+        titleElement.querySelector('.badge-category__wrapper');
+    if (categoryElement != null) {
+      categoryHtml = categoryElement.outerHtml;
+      categoryElement.remove();
+    }
+    final trimmedTitle = titleElement.innerHtml.trim();
+    if (trimmedTitle.isNotEmpty) {
+      titleHtml = trimmedTitle;
+    }
+  }
+
   final blockquoteElement = element.querySelector('blockquote');
   final quoteContent = blockquoteElement?.innerHtml ?? '';
 
@@ -32,7 +48,7 @@ Widget buildQuoteCard({
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 引用头部：头像 + 用户名
+        // 引用头部：头像 + 用户名 + 标题 + 分类
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 0),
           child: Row(
@@ -45,11 +61,40 @@ Widget buildQuoteCard({
                 ),
                 const SizedBox(width: 8),
               ],
-              Text(
-                '$username:',
-                style: theme.textTheme.labelLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: Row(
+                  children: [
+                    Text(
+                      '$username:',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (titleHtml != null) ...[
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: htmlBuilder(
+                          '<div style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">$titleHtml</div>',
+                          theme.textTheme.labelMedium?.copyWith(
+                            height: 1.2,
+                            color: theme.colorScheme.primary,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
+                    if (categoryHtml != null) ...[
+                      const SizedBox(width: 4),
+                      htmlBuilder(
+                        categoryHtml,
+                        theme.textTheme.labelMedium?.copyWith(
+                          height: 1.2,
+                          fontSize: 11, // 分类稍微小一点
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
             ],
