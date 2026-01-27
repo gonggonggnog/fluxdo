@@ -7,7 +7,7 @@ import '../../../providers/discourse_providers.dart';
 /// 话题投票按钮组件
 class TopicVoteButton extends ConsumerStatefulWidget {
   final TopicDetail topic;
-  final VoidCallback? onVoteChanged;
+  final void Function(int voteCount, bool userVoted)? onVoteChanged;
 
   const TopicVoteButton({
     super.key,
@@ -34,7 +34,9 @@ class _TopicVoteButtonState extends ConsumerState<TopicVoteButton> {
   @override
   void didUpdateWidget(TopicVoteButton oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.topic.id != widget.topic.id) {
+    if (oldWidget.topic.id != widget.topic.id || 
+        oldWidget.topic.userVoted != widget.topic.userVoted ||
+        oldWidget.topic.voteCount != widget.topic.voteCount) {
       _userVoted = widget.topic.userVoted;
       _voteCount = widget.topic.voteCount;
     }
@@ -76,7 +78,9 @@ class _TopicVoteButtonState extends ConsumerState<TopicVoteButton> {
             _voteCount = response.voteCount;
             _isLoading = false;
           });
-          // 不调用 onVoteChanged，避免刷新整个页面
+          
+          widget.onVoteChanged?.call(response.voteCount, false);
+          
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('已取消投票')),
           );
@@ -90,7 +94,8 @@ class _TopicVoteButtonState extends ConsumerState<TopicVoteButton> {
             _voteCount = response.voteCount;
             _isLoading = false;
           });
-          // 不调用 onVoteChanged，避免刷新整个页面
+          
+          widget.onVoteChanged?.call(response.voteCount, true);
 
           // 显示投票成功提示
           String message = '投票成功';

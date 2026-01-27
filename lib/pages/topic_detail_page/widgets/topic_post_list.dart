@@ -27,7 +27,7 @@ class TopicPostList extends StatelessWidget {
   final void Function(int postNumber) onJumpToPost;
   final void Function(Post? replyToPost) onReply;
   final void Function(Post post) onEdit; // 编辑回调
-  final VoidCallback onVoteChanged;
+  final void Function(int, bool) onVoteChanged;
   final bool Function(ScrollNotification) onScrollNotification;
 
   const TopicPostList({

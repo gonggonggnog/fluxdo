@@ -17,7 +17,7 @@ import 'topic_vote_button.dart';
 class TopicDetailHeader extends ConsumerWidget {
   final TopicDetail detail;
   final GlobalKey? headerKey;
-  final VoidCallback? onVoteChanged;
+  final void Function(int, bool)? onVoteChanged;
 
   const TopicDetailHeader({
     super.key,

@@ -525,6 +525,33 @@ class TopicDetailNotifier extends AsyncNotifier<TopicDetail> {
     ));
   }
 
+  /// 更新话题投票状态
+  void updateTopicVote(int newVoteCount, bool userVoted) {
+    final currentDetail = state.value;
+    if (currentDetail == null) return;
+
+    state = AsyncValue.data(TopicDetail(
+      id: currentDetail.id,
+      title: currentDetail.title,
+      slug: currentDetail.slug,
+      postsCount: currentDetail.postsCount,
+      postStream: currentDetail.postStream,
+      categoryId: currentDetail.categoryId,
+      closed: currentDetail.closed,
+      archived: currentDetail.archived,
+      tags: currentDetail.tags,
+      views: currentDetail.views,
+      likeCount: currentDetail.likeCount,
+      createdAt: currentDetail.createdAt,
+      visible: currentDetail.visible,
+      canVote: currentDetail.canVote,
+      // 更新这两个字段
+      voteCount: newVoteCount,
+      userVoted: userVoted,
+      lastReadPostNumber: currentDetail.lastReadPostNumber,
+    ));
+  }
+
   /// 使用新的起始帖子号重新加载数据
   /// 用于跳转到不在当前列表中的帖子
   Future<void> reloadWithPostNumber(int postNumber) async {

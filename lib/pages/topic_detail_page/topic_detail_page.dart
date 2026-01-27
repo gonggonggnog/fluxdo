@@ -217,9 +217,9 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
     }
   }
 
-  void _handleVoteChanged() {
+  void _handleVoteChanged(int newVoteCount, bool userVoted) {
     final params = TopicDetailParams(widget.topicId, postNumber: _scrollController.currentPostNumber, instanceId: _instanceId);
-    ref.invalidate(topicDetailProvider(params));
+    ref.read(topicDetailProvider(params).notifier).updateTopicVote(newVoteCount, userVoted);
   }
 
   void _updateReadPostNumbers(Set<int> readPostNumbers) {
