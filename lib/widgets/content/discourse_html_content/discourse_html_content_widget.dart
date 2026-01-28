@@ -351,6 +351,7 @@ class _DiscourseHtmlContentState extends State<DiscourseHtmlContent> {
         context: context,
         theme: theme,
         element: element,
+        linkCounts: widget.linkCounts,
       );
     }
 
