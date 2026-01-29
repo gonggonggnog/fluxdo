@@ -106,10 +106,10 @@ class _DiscourseHtmlContentState extends State<DiscourseHtmlContent> {
     return galleryImages;
   }
 
-  /// 预处理 HTML：在链接后注入点击次数，在 mention 链接后注入用户状态 emoji
+  /// 预处理 HTML：注入用户状态 emoji、链接点击次数，修复 mention 圆角问题
   String _preprocessHtml(String html) {
     var processedHtml = html;
-    
+
     // 1. 注入用户状态 emoji 到 mention 链接
     if (widget.mentionedUsers != null && widget.mentionedUsers!.isNotEmpty) {
       for (final user in widget.mentionedUsers!) {
@@ -132,8 +132,14 @@ class _DiscourseHtmlContentState extends State<DiscourseHtmlContent> {
         }
       }
     }
-    
-    // 2. 注入链接点击次数
+
+    // 2. 给 mention 链接后面添加零宽度空格，确保右边圆角正确渲染
+    processedHtml = processedHtml.replaceAllMapped(
+      RegExp(r'(<a[^>]*class="[^"]*mention[^"]*"[^>]*>.*?</a>)'),
+      (match) => '${match.group(1)}\u200B',
+    );
+
+    // 3. 注入链接点击次数
     if (widget.linkCounts != null && widget.linkCounts!.isNotEmpty) {
       for (final lc in widget.linkCounts!) {
         if (lc.clicks > 0) {
@@ -152,7 +158,7 @@ class _DiscourseHtmlContentState extends State<DiscourseHtmlContent> {
         }
       }
     }
-    
+
     return processedHtml;
   }
 
@@ -216,11 +222,10 @@ class _DiscourseHtmlContentState extends State<DiscourseHtmlContent> {
             'color': '#$linkColor',
             'text-decoration': 'none',
             'background-color': '#$bgColor',
-            'padding': '0.2em 0.34em',
-            'border-radius': '0.6em',
+            'padding': '2px 6px',
+            'border-radius': '8px',
             'font-size': '0.93em',
             'font-weight': 'normal',
-            'line-height': '1',
           };
         }
         // 优化链接样式
