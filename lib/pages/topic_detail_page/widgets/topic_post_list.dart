@@ -110,6 +110,7 @@ class TopicPostList extends StatelessWidget {
                     post: post,
                     topicId: detail.id,
                     highlight: highlightPostNumber == post.postNumber,
+                    isTopicOwner: detail.createdBy?.username == post.username,
                     onLike: () => ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text('点赞功能开发中...')),
                     ),
@@ -190,6 +191,7 @@ class TopicPostList extends StatelessWidget {
                         post: post,
                         topicId: detail.id,
                         highlight: highlightPostNumber == post.postNumber,
+                        isTopicOwner: detail.createdBy?.username == post.username,
                         onLike: () => ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(content: Text('点赞功能开发中...')),
                         ),

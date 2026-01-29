@@ -36,6 +36,7 @@ class PostItem extends ConsumerStatefulWidget {
   final void Function(int postNumber)? onJumpToPost;
   final void Function(bool isVisible)? onVisibilityChanged;
   final bool highlight;
+  final bool isTopicOwner;
 
   const PostItem({
     super.key,
@@ -47,6 +48,7 @@ class PostItem extends ConsumerStatefulWidget {
     this.onJumpToPost,
     this.onVisibilityChanged,
     this.highlight = false,
+    this.isTopicOwner = false,
   });
 
   @override
@@ -570,6 +572,25 @@ class _PostItemState extends ConsumerState<PostItem> {
     );
   }
 
+  Widget _buildCompactBadge(BuildContext context, String text, Color backgroundColor, Color textColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: textColor,
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          height: 1.1,
+        ),
+      ),
+    );
+  }
+
   void _showSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -665,6 +686,14 @@ class _PostItemState extends ConsumerState<PostItem> {
                             maxLines: 1,
                           ),
                         ),
+                        if (widget.isTopicOwner && post.postNumber > 1) ...[
+                          const SizedBox(width: 4),
+                          _buildCompactBadge(context, '主', theme.colorScheme.primaryContainer, theme.colorScheme.onPrimaryContainer),
+                        ],
+                        if (isOwnPost) ...[
+                          const SizedBox(width: 4),
+                          _buildCompactBadge(context, '我', theme.colorScheme.tertiaryContainer, theme.colorScheme.onTertiaryContainer),
+                        ],
                         if (isWhisper) ...[
                           const SizedBox(width: 8),
                           const WhisperIndicator(),
