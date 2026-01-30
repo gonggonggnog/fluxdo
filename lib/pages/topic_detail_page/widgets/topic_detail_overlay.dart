@@ -17,8 +17,10 @@ class TopicDetailOverlay extends StatelessWidget {
   final VoidCallback onReply;
   final VoidCallback onProgressTap;
   final bool isSummaryMode;
+  final bool isAuthorOnlyMode;
   final bool isLoading;
   final VoidCallback? onShowTopReplies;
+  final VoidCallback? onShowAuthorOnly;
   final VoidCallback? onCancelFilter;
 
   const TopicDetailOverlay({
@@ -34,8 +36,10 @@ class TopicDetailOverlay extends StatelessWidget {
     required this.onReply,
     required this.onProgressTap,
     this.isSummaryMode = false,
+    this.isAuthorOnlyMode = false,
     this.isLoading = false,
     this.onShowTopReplies,
+    this.onShowAuthorOnly,
     this.onCancelFilter,
   });
 
@@ -77,8 +81,10 @@ class TopicDetailOverlay extends StatelessWidget {
             onOpenInBrowser: onOpenInBrowser,
             hasSummary: detail.hasSummary,
             isSummaryMode: isSummaryMode,
+            isAuthorOnlyMode: isAuthorOnlyMode,
             isLoading: isLoading,
             onShowTopReplies: onShowTopReplies,
+            onShowAuthorOnly: onShowAuthorOnly,
             onCancelFilter: onCancelFilter,
           ),
         ),

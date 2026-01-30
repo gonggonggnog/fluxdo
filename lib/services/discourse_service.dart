@@ -379,7 +379,8 @@ class DiscourseService {
   /// [postNumber] 可选，从指定帖子位置开始加载
   /// [trackVisit] 是否记录访问（仅在用户主动访问时传 true）
   /// [filter] 可选，过滤模式（如 'summary' 表示热门回复）
-  Future<TopicDetail> getTopicDetail(int id, {int? postNumber, bool trackVisit = false, String? filter}) async {
+  /// [usernameFilters] 可选，按用户名过滤帖子（如只看题主）
+  Future<TopicDetail> getTopicDetail(int id, {int? postNumber, bool trackVisit = false, String? filter, String? usernameFilters}) async {
     final path = postNumber != null ? '/t/$id/$postNumber.json' : '/t/$id.json';
     final queryParams = <String, dynamic>{};
     if (trackVisit) {
@@ -387,6 +388,9 @@ class DiscourseService {
     }
     if (filter != null) {
       queryParams['filter'] = filter;
+    }
+    if (usernameFilters != null) {
+      queryParams['username_filters'] = usernameFilters;
     }
     final response = await _dio.get(
       path,

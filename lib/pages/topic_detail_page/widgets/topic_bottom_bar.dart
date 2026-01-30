@@ -7,8 +7,10 @@ class TopicBottomBar extends StatelessWidget {
   final VoidCallback? onOpenInBrowser;
   final bool hasSummary;
   final bool isSummaryMode;
+  final bool isAuthorOnlyMode;
   final bool isLoading;
   final VoidCallback? onShowTopReplies;
+  final VoidCallback? onShowAuthorOnly;
   final VoidCallback? onCancelFilter;
 
   const TopicBottomBar({
@@ -18,8 +20,10 @@ class TopicBottomBar extends StatelessWidget {
     this.onOpenInBrowser,
     this.hasSummary = false,
     this.isSummaryMode = false,
+    this.isAuthorOnlyMode = false,
     this.isLoading = false,
     this.onShowTopReplies,
+    this.onShowAuthorOnly,
     this.onCancelFilter,
   });
 
@@ -46,6 +50,8 @@ class TopicBottomBar extends StatelessWidget {
           // 热门回复切换
           if (hasSummary)
             _buildTopRepliesButton(context),
+          // 只看题主
+          _buildAuthorOnlyButton(context),
           // 分享
           IconButton(
             onPressed: onShare,
@@ -68,25 +74,34 @@ class TopicBottomBar extends StatelessWidget {
 
     return IconButton(
       onPressed: isLoading ? null : (isSummaryMode ? onCancelFilter : onShowTopReplies),
-      icon: isLoading
-          ? SizedBox(
-              width: 24,
-              height: 24,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: theme.colorScheme.primary,
-              ),
-            )
-          : Icon(
-              isSummaryMode
-                  ? Icons.local_fire_department
-                  : Icons.local_fire_department_outlined,
-              color: isSummaryMode ? theme.colorScheme.primary : null,
-            ),
+      icon: Icon(
+        isSummaryMode
+            ? Icons.local_fire_department
+            : Icons.local_fire_department_outlined,
+        color: isSummaryMode ? theme.colorScheme.primary : null,
+      ),
       style: IconButton.styleFrom(
         backgroundColor: isSummaryMode ? theme.colorScheme.primaryContainer : null,
       ),
       tooltip: isSummaryMode ? '查看全部' : '只看热门',
+    );
+  }
+
+  Widget _buildAuthorOnlyButton(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return IconButton(
+      onPressed: isLoading ? null : (isAuthorOnlyMode ? onCancelFilter : onShowAuthorOnly),
+      icon: Icon(
+        isAuthorOnlyMode
+            ? Icons.person
+            : Icons.person_outline,
+        color: isAuthorOnlyMode ? theme.colorScheme.primary : null,
+      ),
+      style: IconButton.styleFrom(
+        backgroundColor: isAuthorOnlyMode ? theme.colorScheme.primaryContainer : null,
+      ),
+      tooltip: isAuthorOnlyMode ? '查看全部' : '只看题主',
     );
   }
 }

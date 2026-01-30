@@ -392,14 +392,22 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
 
     final posts = detail.postStream.posts;
     final postIndex = posts.indexWhere((p) => p.postNumber == postNumber);
+    final notifier = ref.read(topicDetailProvider(params).notifier);
 
     if (postIndex == -1) {
       print('[TopicDetail] Post $postNumber not in list, reloading with new postNumber');
       _scrollController.prepareJumpToPost(postNumber);
       _highlightController.skipNextJumpHighlight = false;
 
-      final notifier = ref.read(topicDetailProvider(params).notifier);
-      await notifier.reloadWithPostNumber(postNumber);
+      // 如果处于过滤模式，先取消过滤再跳转
+      if (notifier.isSummaryMode || notifier.isAuthorOnlyMode) {
+        setState(() => _isSwitchingMode = true);
+        _visibilityTracker.reset();
+        await notifier.cancelFilterAndReloadWithPostNumber(postNumber);
+        if (mounted) setState(() => _isSwitchingMode = false);
+      } else {
+        await notifier.reloadWithPostNumber(postNumber);
+      }
       return;
     }
 
@@ -496,7 +504,16 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
       _highlightController.skipNextJumpHighlight = false;
 
       final notifier = ref.read(topicDetailProvider(params).notifier);
-      await notifier.reloadWithPostNumber(realPostNumber);
+
+      // 如果处于过滤模式，先取消过滤再跳转
+      if (notifier.isSummaryMode || notifier.isAuthorOnlyMode) {
+        setState(() => _isSwitchingMode = true);
+        _visibilityTracker.reset();
+        await notifier.cancelFilterAndReloadWithPostNumber(realPostNumber);
+        if (mounted) setState(() => _isSwitchingMode = false);
+      } else {
+        await notifier.reloadWithPostNumber(realPostNumber);
+      }
     } catch (e) {
       print('[TopicDetail] Error fetching post $postId: $e');
     }
@@ -648,6 +665,29 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
     _visibilityTracker.reset();
 
     await notifier.cancelFilter();
+
+    if (mounted) {
+      setState(() => _isSwitchingMode = false);
+    }
+  }
+
+  Future<void> _handleShowAuthorOnly() async {
+    final params = TopicDetailParams(widget.topicId, postNumber: _scrollController.currentPostNumber, instanceId: _instanceId);
+    final detail = ref.read(topicDetailProvider(params)).value;
+    final notifier = ref.read(topicDetailProvider(params).notifier);
+
+    final authorUsername = detail?.createdBy?.username;
+    if (authorUsername == null || authorUsername.isEmpty) return;
+
+    // 显示骨架屏
+    setState(() => _isSwitchingMode = true);
+
+    // 重置状态，和跳转到未加载数据时一样
+    _scrollController.prepareJumpToPost(1);
+    _highlightController.skipNextJumpHighlight = true;
+    _visibilityTracker.reset();
+
+    await notifier.showAuthorOnly(authorUsername);
 
     if (mounted) {
       setState(() => _isSwitchingMode = false);
@@ -960,8 +1000,10 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
               onReply: () => _handleReply(null),
               onProgressTap: () => _showTimelineSheet(detail),
               isSummaryMode: notifier.isSummaryMode,
+              isAuthorOnlyMode: notifier.isAuthorOnlyMode,
               isLoading: _isSwitchingMode,
               onShowTopReplies: _handleShowTopReplies,
+              onShowAuthorOnly: _handleShowAuthorOnly,
               onCancelFilter: _handleCancelFilter,
             ),
 

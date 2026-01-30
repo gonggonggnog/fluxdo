@@ -35,12 +35,14 @@ class TopicDetailNotifier extends AsyncNotifier<TopicDetail> {
   bool _isLoadingPrevious = false;
   bool _isLoadingMore = false;
   String? _filter;  // 当前过滤模式（如 'summary' 表示热门回复）
+  String? _usernameFilter;  // 当前用户名过滤（如只看题主）
 
   bool get hasMoreAfter => _hasMoreAfter;
   bool get hasMoreBefore => _hasMoreBefore;
   bool get isLoadingPrevious => _isLoadingPrevious;
   bool get isLoadingMore => _isLoadingMore;
   bool get isSummaryMode => _filter == 'summary';
+  bool get isAuthorOnlyMode => _usernameFilter != null;
 
   @override
   Future<TopicDetail> build() async {
@@ -73,14 +75,57 @@ class TopicDetailNotifier extends AsyncNotifier<TopicDetail> {
   Future<void> showTopReplies() async {
     if (_filter == 'summary') return;
     _filter = 'summary';
+    _usernameFilter = null;
+    await _reloadWithFilter();
+  }
+
+  /// 切换到只看题主模式
+  Future<void> showAuthorOnly(String username) async {
+    if (_usernameFilter == username) return;
+    _usernameFilter = username;
+    _filter = null;
     await _reloadWithFilter();
   }
 
   /// 取消过滤，显示全部回复
   Future<void> cancelFilter() async {
-    if (_filter == null) return;
+    if (_filter == null && _usernameFilter == null) return;
     _filter = null;
+    _usernameFilter = null;
     await _reloadWithFilter();
+  }
+
+  /// 取消过滤并跳转到指定帖子
+  Future<void> cancelFilterAndReloadWithPostNumber(int postNumber) async {
+    _filter = null;
+    _usernameFilter = null;
+    state = const AsyncValue.loading();
+    _hasMoreAfter = true;
+    _hasMoreBefore = true;
+
+    await Future.delayed(Duration.zero);
+
+    state = await AsyncValue.guard(() async {
+      final service = ref.read(discourseServiceProvider);
+      final detail = await service.getTopicDetail(arg.topicId, postNumber: postNumber);
+
+      final posts = detail.postStream.posts;
+      final stream = detail.postStream.stream;
+      if (posts.isEmpty) {
+        _hasMoreAfter = false;
+        _hasMoreBefore = false;
+      } else {
+        final firstPostId = posts.first.id;
+        final firstIndex = stream.indexOf(firstPostId);
+        _hasMoreBefore = firstIndex > 0;
+
+        final lastPostId = posts.last.id;
+        final lastIndex = stream.indexOf(lastPostId);
+        _hasMoreAfter = lastIndex < stream.length - 1;
+      }
+
+      return detail;
+    });
   }
 
   /// 使用当前 filter 重新加载数据
@@ -91,7 +136,7 @@ class TopicDetailNotifier extends AsyncNotifier<TopicDetail> {
 
     state = await AsyncValue.guard(() async {
       final service = ref.read(discourseServiceProvider);
-      final detail = await service.getTopicDetail(arg.topicId, filter: _filter);
+      final detail = await service.getTopicDetail(arg.topicId, filter: _filter, usernameFilters: _usernameFilter);
 
       final posts = detail.postStream.posts;
       final stream = detail.postStream.stream;
