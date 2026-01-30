@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import 'dart:async';
 import '../../constants.dart';
 import '../../models/topic.dart';
+import '../../utils/responsive.dart';
 import '../../providers/discourse_providers.dart';
 import '../../providers/message_bus_providers.dart';
 import '../../services/discourse_service.dart';
@@ -31,12 +32,14 @@ class TopicDetailPage extends ConsumerStatefulWidget {
   final int topicId;
   final String? initialTitle;
   final int? scrollToPostNumber; // 外部控制的跳转位置（如从通知跳转到指定楼层）
+  final bool embeddedMode; // 嵌入模式（双栏布局中使用，不显示返回按钮）
 
   const TopicDetailPage({
     super.key,
     required this.topicId,
     this.initialTitle,
     this.scrollToPostNumber,
+    this.embeddedMode = false,
   });
 
   @override
@@ -704,6 +707,17 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
     }
   }
 
+  /// 在大屏上为内容添加宽度约束
+  Widget _wrapWithConstraint(Widget child) {
+    if (Responsive.isMobile(context)) return child;
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: Breakpoints.maxContentWidth),
+        child: child,
+      ),
+    );
+  }
+
   /// 构建带动画的 AppBar
   PreferredSizeWidget _buildAppBar({
     required ThemeData theme,
@@ -721,6 +735,7 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
           final shouldShowTitle = _showTitle || !_hasFirstPost;
 
           return AppBar(
+            automaticallyImplyLeading: !widget.embeddedMode,
             elevation: currentElevation,
             scrolledUnderElevation: currentElevation,
             shadowColor: Colors.transparent,
@@ -934,7 +949,7 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
     // 初始加载或切换模式时显示骨架屏
     if ((detailAsync.isLoading && detail == null) || _isSwitchingMode) {
       final showHeaderSkeleton = widget.scrollToPostNumber == null || widget.scrollToPostNumber == 0;
-      return PostListSkeleton(withHeader: showHeaderSkeleton);
+      return _wrapWithConstraint(PostListSkeleton(withHeader: showHeaderSkeleton));
     }
 
     // 跳转中：等待包含目标帖子的新数据 - 显示骨架屏
@@ -946,7 +961,7 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
           posts.first.postNumber <= jumpTarget &&
           posts.last.postNumber >= jumpTarget;
       if (!hasTarget) {
-        return const PostListSkeleton(withHeader: false);
+        return _wrapWithConstraint(const PostListSkeleton(withHeader: false));
       }
     }
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 import '../../../models/topic.dart';
 import '../../../providers/message_bus_providers.dart';
+import '../../../utils/responsive.dart';
 import '../../../widgets/post/post_item.dart';
 import '../../../widgets/post/post_item_skeleton.dart';
 import 'topic_detail_header.dart';
@@ -55,6 +56,17 @@ class TopicPostList extends StatelessWidget {
     required this.onScrollNotification,
   });
 
+  /// 在大屏上为内容添加宽度约束
+  Widget _wrapContent(BuildContext context, Widget child) {
+    if (Responsive.isMobile(context)) return child;
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: Breakpoints.maxContentWidth),
+        child: child,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -79,7 +91,7 @@ class TopicPostList extends StatelessWidget {
           if (hasMoreBefore && isLoadingPrevious)
             SliverList(
               delegate: SliverChildBuilderDelegate(
-                (context, index) => const PostItemSkeleton(),
+                (context, index) => _wrapContent(context, const PostItemSkeleton()),
                 childCount: loadMoreSkeletonCount,
               ),
             ),
@@ -89,11 +101,14 @@ class TopicPostList extends StatelessWidget {
               (context, index) {
                 // 头部信息
                 if (hasFirstPost && centerPostIndex > 0 && index == centerPostIndex) {
-                  return TopicDetailHeader(
-                    detail: detail,
-                    headerKey: headerKey,
-                    onVoteChanged: onVoteChanged,
-                    onNotificationLevelChanged: onNotificationLevelChanged,
+                  return _wrapContent(
+                    context,
+                    TopicDetailHeader(
+                      detail: detail,
+                      headerKey: headerKey,
+                      onVoteChanged: onVoteChanged,
+                      onNotificationLevelChanged: onNotificationLevelChanged,
+                    ),
                   );
                 }
 
@@ -102,23 +117,26 @@ class TopicPostList extends StatelessWidget {
 
                 final post = posts[postIndex];
 
-                return AutoScrollTag(
-                  key: ValueKey('post-${post.postNumber}'),
-                  controller: scrollController,
-                  index: postIndex,
-                  child: PostItem(
-                    post: post,
-                    topicId: detail.id,
-                    highlight: highlightPostNumber == post.postNumber,
-                    isTopicOwner: detail.createdBy?.username == post.username,
-                    onLike: () => ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('点赞功能开发中...')),
+                return _wrapContent(
+                  context,
+                  AutoScrollTag(
+                    key: ValueKey('post-${post.postNumber}'),
+                    controller: scrollController,
+                    index: postIndex,
+                    child: PostItem(
+                      post: post,
+                      topicId: detail.id,
+                      highlight: highlightPostNumber == post.postNumber,
+                      isTopicOwner: detail.createdBy?.username == post.username,
+                      onLike: () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('点赞功能开发中...')),
+                      ),
+                      onReply: isLoggedIn ? () => onReply(post) : null,
+                      onEdit: isLoggedIn && post.canEdit ? () => onEdit(post) : null,
+                      onJumpToPost: onJumpToPost,
+                      onVisibilityChanged: (isVisible) =>
+                          onPostVisibilityChanged(post.postNumber, isVisible),
                     ),
-                    onReply: isLoggedIn ? () => onReply(post) : null,
-                    onEdit: isLoggedIn && post.canEdit ? () => onEdit(post) : null,
-                    onJumpToPost: onJumpToPost,
-                    onVisibilityChanged: (isVisible) =>
-                        onPostVisibilityChanged(post.postNumber, isVisible),
                   ),
                 );
               },
@@ -133,11 +151,14 @@ class TopicPostList extends StatelessWidget {
               (context, index) {
                 // 头部信息
                 if (hasFirstPost && centerPostIndex == 0 && index == 0) {
-                  return TopicDetailHeader(
-                    detail: detail,
-                    headerKey: headerKey,
-                    onVoteChanged: onVoteChanged,
-                    onNotificationLevelChanged: onNotificationLevelChanged,
+                  return _wrapContent(
+                    context,
+                    TopicDetailHeader(
+                      detail: detail,
+                      headerKey: headerKey,
+                      onVoteChanged: onVoteChanged,
+                      onNotificationLevelChanged: onNotificationLevelChanged,
+                    ),
                   );
                 }
 
@@ -149,7 +170,7 @@ class TopicPostList extends StatelessWidget {
                   if (hasMoreAfter && isLoadingMore) {
                     final skeletonIndex = adjustedIndex - posts.length;
                     if (skeletonIndex < loadMoreSkeletonCount) {
-                      return const PostItemSkeleton();
+                      return _wrapContent(context, const PostItemSkeleton());
                     }
                     return null;
                   }
@@ -157,7 +178,7 @@ class TopicPostList extends StatelessWidget {
                   // 只有在没有更多数据时，才显示正在输入
                   if (typingUsers.isNotEmpty && !hasMoreAfter) {
                     if (adjustedIndex == posts.length) {
-                      return TypingAvatars(users: typingUsers);
+                      return _wrapContent(context, TypingAvatars(users: typingUsers));
                     }
                   }
 
@@ -167,41 +188,44 @@ class TopicPostList extends StatelessWidget {
                 final post = posts[adjustedIndex];
                 final showDivider = dividerPostIndex == adjustedIndex;
 
-                return AutoScrollTag(
-                  key: ValueKey('post-${post.postNumber}'),
-                  controller: scrollController,
-                  index: adjustedIndex,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (showDivider)
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
-                          color: theme.colorScheme.primaryContainer.withOpacity(0.3),
-                          child: Text(
-                            '上次看到这里',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: theme.colorScheme.primary,
-                              fontWeight: FontWeight.w500,
+                return _wrapContent(
+                  context,
+                  AutoScrollTag(
+                    key: ValueKey('post-${post.postNumber}'),
+                    controller: scrollController,
+                    index: adjustedIndex,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (showDivider)
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                            color: theme.colorScheme.primaryContainer.withOpacity(0.3),
+                            child: Text(
+                              '上次看到这里',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.w500,
+                              ),
                             ),
                           ),
+                        PostItem(
+                          post: post,
+                          topicId: detail.id,
+                          highlight: highlightPostNumber == post.postNumber,
+                          isTopicOwner: detail.createdBy?.username == post.username,
+                          onLike: () => ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('点赞功能开发中...')),
+                          ),
+                          onReply: isLoggedIn ? () => onReply(post) : null,
+                          onEdit: isLoggedIn && post.canEdit ? () => onEdit(post) : null,
+                          onJumpToPost: onJumpToPost,
+                          onVisibilityChanged: (isVisible) =>
+                              onPostVisibilityChanged(post.postNumber, isVisible),
                         ),
-                      PostItem(
-                        post: post,
-                        topicId: detail.id,
-                        highlight: highlightPostNumber == post.postNumber,
-                        isTopicOwner: detail.createdBy?.username == post.username,
-                        onLike: () => ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('点赞功能开发中...')),
-                        ),
-                        onReply: isLoggedIn ? () => onReply(post) : null,
-                        onEdit: isLoggedIn && post.canEdit ? () => onEdit(post) : null,
-                        onJumpToPost: onJumpToPost,
-                        onVisibilityChanged: (isVisible) =>
-                            onPostVisibilityChanged(post.postNumber, isVisible),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               },

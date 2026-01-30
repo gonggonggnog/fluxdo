@@ -2,9 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'pages/topics_page.dart';
+import 'pages/topics_screen.dart';
 import 'pages/profile_page.dart';
-import 'pages/create_topic_page.dart';
-import 'pages/topic_detail_page/topic_detail_page.dart';
 import 'providers/discourse_providers.dart';
 import 'providers/message_bus_providers.dart';
 import 'providers/app_state_refresher.dart';
@@ -28,6 +27,8 @@ import 'providers/theme_provider.dart';
 import 'package:dynamic_color/dynamic_color.dart';
 import 'widgets/preheat_gate.dart';
 import 'widgets/onboarding_gate.dart';
+import 'widgets/layout/adaptive_scaffold.dart';
+import 'widgets/layout/adaptive_navigation.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -151,7 +152,7 @@ class _MainPageState extends ConsumerState<MainPage> {
   DateTime? _lastTapTime;
 
   final List<Widget> _pages = const [
-    TopicsPage(),
+    TopicsScreen(),
     ProfilePage(),
   ];
 
@@ -259,65 +260,39 @@ class _MainPageState extends ConsumerState<MainPage> {
     final currentUserAsync = ref.watch(currentUserProvider);
     final user = currentUserAsync.value;
 
-    return Scaffold(
-      // App bar removed, delegated to individual pages
+    // 首页的 FAB 由 TopicsScreen 内部处理，避免切换时闪烁
+    return AdaptiveScaffold(
+      selectedIndex: _currentIndex,
+      onDestinationSelected: _onDestinationSelected,
+      destinations: _buildDestinations(user),
       body: _pages[_currentIndex],
-      floatingActionButton: (_currentIndex == 0 && user != null)
-          ? FloatingActionButton(
-              onPressed: () async {
-                final topicId = await Navigator.push<int>(
-                  context,
-                  MaterialPageRoute(builder: (_) => const CreateTopicPage()),
-                );
-                if (topicId != null && context.mounted) {
-                  // 刷新列表
-                  for (final filter in TopicListFilter.values) {
-                    ref.invalidate(topicListProvider(filter));
-                  }
-                  // 跳转到新话题
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => TopicDetailPage(topicId: topicId),
-                    ),
-                  );
-                }
-              },
-              child: const Icon(Icons.add),
-            )
-          : null,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: _onDestinationSelected,
-        destinations: [
-          const NavigationDestination(
-            icon: Icon(Icons.home_outlined),
-            selectedIcon: Icon(Icons.home),
-            label: '首页',
-          ),
-          NavigationDestination(
-            icon: user?.getAvatarUrl() != null && user!.getAvatarUrl().isNotEmpty
-                ? SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircleAvatar(
-                      backgroundImage: discourseImageProvider(user.getAvatarUrl()),
-                    ),
-                  )
-                : const Icon(Icons.person_outline),
-            selectedIcon: user?.getAvatarUrl() != null && user!.getAvatarUrl().isNotEmpty
-                ? SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircleAvatar(
-                      backgroundImage: discourseImageProvider(user.getAvatarUrl()),
-                    ),
-                  )
-                : const Icon(Icons.person),
-            label: '我的',
-          ),
-        ],
-      ),
     );
+  }
+
+  List<AdaptiveDestination> _buildDestinations(User? user) {
+    final avatarUrl = user?.getAvatarUrl();
+    final hasAvatar = avatarUrl != null && avatarUrl.isNotEmpty;
+    final avatarWidget = hasAvatar
+        ? SizedBox(
+            width: 24,
+            height: 24,
+            child: CircleAvatar(
+              backgroundImage: discourseImageProvider(avatarUrl),
+            ),
+          )
+        : null;
+
+    return [
+      const AdaptiveDestination(
+        icon: Icon(Icons.home_outlined),
+        selectedIcon: Icon(Icons.home),
+        label: '首页',
+      ),
+      AdaptiveDestination(
+        icon: avatarWidget ?? const Icon(Icons.person_outline),
+        selectedIcon: avatarWidget ?? const Icon(Icons.person),
+        label: '我的',
+      ),
+    ];
   }
 }

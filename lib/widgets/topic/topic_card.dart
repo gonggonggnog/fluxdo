@@ -15,8 +15,14 @@ import '../common/emoji_text.dart';
 class TopicCard extends ConsumerWidget {
   final Topic topic;
   final VoidCallback? onTap;
-  
-  const TopicCard({super.key, required this.topic, this.onTap});
+  final bool isSelected;
+
+  const TopicCard({
+    super.key,
+    required this.topic,
+    this.onTap,
+    this.isSelected = false,
+  });
   
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -54,11 +60,15 @@ class TopicCard extends ConsumerWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       clipBehavior: Clip.antiAlias,
-      elevation: 0,
+      elevation: isSelected ? 1 : 0,
+      color: isSelected ? theme.colorScheme.primaryContainer.withOpacity(0.3) : null,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withOpacity(0.5),
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outlineVariant.withOpacity(0.5),
+          width: isSelected ? 2 : 1,
         ),
       ),
       child: InkWell(
@@ -370,8 +380,14 @@ class TopicCard extends ConsumerWidget {
 class CompactTopicCard extends ConsumerWidget {
   final Topic topic;
   final VoidCallback? onTap;
+  final bool isSelected;
 
-  const CompactTopicCard({super.key, required this.topic, this.onTap});
+  const CompactTopicCard({
+    super.key,
+    required this.topic,
+    this.onTap,
+    this.isSelected = false,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -396,12 +412,17 @@ class CompactTopicCard extends ConsumerWidget {
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       clipBehavior: Clip.antiAlias,
-      elevation: 0,
-      color: theme.colorScheme.surfaceContainerLow.withOpacity(0.5),
+      elevation: isSelected ? 1 : 0,
+      color: isSelected
+          ? theme.colorScheme.primaryContainer.withOpacity(0.3)
+          : theme.colorScheme.surfaceContainerLow.withOpacity(0.5),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
         side: BorderSide(
-          color: theme.colorScheme.outlineVariant.withOpacity(0.4),
+          color: isSelected
+              ? theme.colorScheme.primary
+              : theme.colorScheme.outlineVariant.withOpacity(0.4),
+          width: isSelected ? 2 : 1,
         ),
       ),
       child: InkWell(

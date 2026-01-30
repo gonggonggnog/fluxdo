@@ -8,6 +8,7 @@ import '../models/topic.dart';
 import '../widgets/topic/topic_card.dart';
 import '../providers/discourse_providers.dart';
 import '../providers/message_bus_providers.dart';
+import '../providers/selected_topic_provider.dart';
 import 'webview_login_page.dart';
 import 'topic_detail_page/topic_detail_page.dart';
 import 'search_page.dart';
@@ -15,6 +16,7 @@ import '../widgets/common/notification_icon_button.dart';
 import '../widgets/topic/topic_filter_sheet.dart';
 import '../widgets/topic/topic_list_skeleton.dart';
 import '../providers/app_state_refresher.dart';
+import '../utils/responsive.dart';
 
 class ScrollToTopNotifier extends StateNotifier<int> {
   ScrollToTopNotifier() : super(0);
@@ -363,12 +365,23 @@ class _TopicListState extends ConsumerState<_TopicList> with AutomaticKeepAliveC
   }
 
   void _openTopic(Topic topic) {
+    // 平板/桌面：使用 Master-Detail 模式
+    if (!Responsive.isMobile(context)) {
+      ref.read(selectedTopicProvider.notifier).select(
+        topicId: topic.id,
+        initialTitle: topic.title,
+        scrollToPostNumber: topic.lastReadPostNumber,
+      );
+      return;
+    }
+
+    // 手机：跳转页面
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => TopicDetailPage(
           topicId: topic.id,
           initialTitle: topic.title,
-          scrollToPostNumber: topic.lastReadPostNumber, // 从列表数据传递跳转位置
+          scrollToPostNumber: topic.lastReadPostNumber,
         ),
       ),
     );
@@ -386,8 +399,9 @@ class _TopicListState extends ConsumerState<_TopicList> with AutomaticKeepAliveC
 
     final currentUserAsync = ref.watch(currentUserProvider);
     final user = currentUserAsync.value;
+    final selectedTopicId = ref.watch(selectedTopicProvider).topicId;
 
-    if (user == null && !currentUserAsync.isLoading && 
+    if (user == null && !currentUserAsync.isLoading &&
         (widget.filter == TopicListFilter.newTopics || widget.filter == TopicListFilter.unread)) {
       return _buildLoginPrompt();
     }
@@ -426,33 +440,50 @@ class _TopicListState extends ConsumerState<_TopicList> with AutomaticKeepAliveC
             padding: const EdgeInsets.all(12),
             itemCount: topics.length + offset + 1,
             itemBuilder: (context, index) {
+              Widget child;
+
               if (hasNewTopics && index == 0) {
-                return _buildNewTopicIndicator(context, newTopicCount);
+                child = _buildNewTopicIndicator(context, newTopicCount);
+              } else {
+                final topicIndex = index - offset;
+                if (topicIndex >= topics.length) {
+                  child = Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Center(
+                      child: ref.watch(topicListProvider(widget.filter).notifier).hasMore
+                          ? const CircularProgressIndicator()
+                          : const Text('没有更多了', style: TextStyle(color: Colors.grey)),
+                    ),
+                  );
+                } else {
+                  final topic = topics[topicIndex];
+                  final isSelected = topic.id == selectedTopicId;
+                  if (topic.pinned) {
+                    child = CompactTopicCard(
+                      topic: topic,
+                      onTap: () => _openTopic(topic),
+                      isSelected: isSelected,
+                    );
+                  } else {
+                    child = TopicCard(
+                      topic: topic,
+                      onTap: () => _openTopic(topic),
+                      isSelected: isSelected,
+                    );
+                  }
+                }
               }
 
-              final topicIndex = index - offset;
-              if (topicIndex >= topics.length) {
-                return Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Center(
-                    child: ref.watch(topicListProvider(widget.filter).notifier).hasMore
-                        ? const CircularProgressIndicator()
-                        : const Text('没有更多了', style: TextStyle(color: Colors.grey)),
+              // 大屏上限制内容宽度
+              if (!Responsive.isMobile(context)) {
+                return Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: Breakpoints.maxContentWidth),
+                    child: child,
                   ),
                 );
               }
-
-              final topic = topics[topicIndex];
-              if (topic.pinned) {
-                return CompactTopicCard(
-                  topic: topic,
-                  onTap: () => _openTopic(topic),
-                );
-              }
-              return TopicCard(
-                topic: topic,
-                onTap: () => _openTopic(topic),
-              );
+              return child;
             },
           ),
         );
