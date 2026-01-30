@@ -59,8 +59,14 @@ class _CodeBlockWidgetState extends State<_CodeBlockWidget> {
     }
   }
 
-  Future<void> _loadHighlight() async {
+  String get _code {
     final text = widget.codeElement.text as String;
+    // 去掉末尾换行符，避免多出空行
+    return text.endsWith('\n') ? text.substring(0, text.length - 1) : text;
+  }
+
+  Future<void> _loadHighlight() async {
+    final text = _code;
     final className = widget.codeElement.className as String;
     String? language;
     if (className.isNotEmpty) {
@@ -83,7 +89,7 @@ class _CodeBlockWidgetState extends State<_CodeBlockWidget> {
   @override
   Widget build(BuildContext context) {
     try {
-      final text = widget.codeElement.text as String;
+      final text = _code;
       final className = widget.codeElement.className as String;
       final theme = Theme.of(context);
       final isDark = theme.brightness == Brightness.dark;
@@ -225,7 +231,7 @@ class _CodeBlockWidgetState extends State<_CodeBlockWidget> {
                     Expanded(
                       child: RawScrollbar(
                         controller: _vController,
-                        thumbVisibility: true,
+                        thumbVisibility: false,
                         thickness: 4,
                         radius: const Radius.circular(2),
                         padding: const EdgeInsets.only(right: 2, top: 2, bottom: 2),
@@ -235,7 +241,7 @@ class _CodeBlockWidgetState extends State<_CodeBlockWidget> {
                           scrollDirection: Axis.vertical,
                           child: RawScrollbar(
                             controller: _hController,
-                            thumbVisibility: true,
+                            thumbVisibility: false,
                             thickness: 4,
                             padding: const EdgeInsets.only(left: 2, right: 2, bottom: 4),
                             radius: const Radius.circular(2),
@@ -438,7 +444,7 @@ class _MermaidWidgetState extends State<_MermaidWidget> with SingleTickerProvide
                     constraints: const BoxConstraints(maxHeight: 400),
                     child: RawScrollbar(
                       controller: _vController,
-                      thumbVisibility: true,
+                      thumbVisibility: false,
                       thickness: 4,
                       radius: const Radius.circular(2),
                       thumbColor: thumbColor,
@@ -446,7 +452,7 @@ class _MermaidWidgetState extends State<_MermaidWidget> with SingleTickerProvide
                         controller: _vController,
                         child: RawScrollbar(
                           controller: _hController,
-                          thumbVisibility: true,
+                          thumbVisibility: false,
                           thickness: 4,
                           thumbColor: thumbColor,
                           child: SingleChildScrollView(
