@@ -33,6 +33,7 @@ class PostItem extends ConsumerStatefulWidget {
   final VoidCallback? onReply;
   final VoidCallback? onLike;
   final VoidCallback? onEdit; // 编辑回调
+  final void Function(int postId)? onRefreshPost; // 刷新帖子回调（用于删除/恢复后）
   final void Function(int postNumber)? onJumpToPost;
   final void Function(bool isVisible)? onVisibilityChanged;
   final void Function(int postId, bool accepted)? onSolutionChanged; // 解决方案状态变化回调
@@ -48,6 +49,7 @@ class PostItem extends ConsumerStatefulWidget {
     this.onReply,
     this.onLike,
     this.onEdit,
+    this.onRefreshPost,
     this.onJumpToPost,
     this.onVisibilityChanged,
     this.onSolutionChanged,
@@ -97,6 +99,9 @@ class _PostItemState extends ConsumerState<PostItem> {
   // 解决方案状态
   bool _isAcceptedAnswer = false;
   bool _isTogglingAnswer = false;
+
+  // 删除状态
+  bool _isDeleting = false;
 
   bool get _canLoadMoreReplies => _replies.length < widget.post.replyCount;
 
@@ -530,6 +535,92 @@ class _PostItemState extends ConsumerState<PostItem> {
     }
   }
 
+  /// 显示删除确认对话框
+  void _showDeleteConfirmDialog(BuildContext context, ThemeData theme) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('删除回复'),
+        content: const Text('确定要删除这条回复吗？此操作可以撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _deletePost();
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.error,
+            ),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 删除帖子
+  Future<void> _deletePost() async {
+    if (_isDeleting) return;
+
+    HapticFeedback.lightImpact();
+    setState(() => _isDeleting = true);
+
+    try {
+      final success = await _service.deletePost(widget.post.id);
+      if (mounted && success) {
+        _showSnackBar('已删除');
+        // 通知父组件刷新帖子状态
+        _refreshPostInProvider();
+      } else if (mounted) {
+        _showSnackBar('删除失败');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('删除失败');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isDeleting = false);
+      }
+    }
+  }
+
+  /// 恢复已删除的帖子
+  Future<void> _recoverPost() async {
+    if (_isDeleting) return;
+
+    HapticFeedback.lightImpact();
+    setState(() => _isDeleting = true);
+
+    try {
+      final success = await _service.recoverPost(widget.post.id);
+      if (mounted && success) {
+        _showSnackBar('已恢复');
+        // 通知父组件刷新帖子状态
+        _refreshPostInProvider();
+      } else if (mounted) {
+        _showSnackBar('恢复失败');
+      }
+    } catch (e) {
+      if (mounted) {
+        _showSnackBar('恢复失败');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isDeleting = false);
+      }
+    }
+  }
+
+  /// 刷新帖子状态到 Provider
+  void _refreshPostInProvider() {
+    widget.onRefreshPost?.call(widget.post.id);
+  }
+
   /// 显示举报对话框
   void _showFlagDialog(BuildContext context, ThemeData theme) {
     showModalBottomSheet(
@@ -623,6 +714,26 @@ class _PostItemState extends ConsumerState<PostItem> {
                     _showFlagDialog(context, theme);
                   },
                 ),
+                // 恢复（仅当帖子已删除且有恢复权限时显示）
+                if (widget.post.canRecover)
+                  ListTile(
+                    leading: Icon(Icons.restore, color: theme.colorScheme.primary),
+                    title: Text('恢复', style: TextStyle(color: theme.colorScheme.primary)),
+                    onTap: _isDeleting ? null : () {
+                      Navigator.pop(ctx);
+                      _recoverPost();
+                    },
+                  ),
+                // 删除（仅当有删除权限且帖子未删除时显示）
+                if (widget.post.canDelete && !widget.post.isDeleted)
+                  ListTile(
+                    leading: Icon(Icons.delete_outline, color: theme.colorScheme.error),
+                    title: Text('删除', style: TextStyle(color: theme.colorScheme.error)),
+                    onTap: _isDeleting ? null : () {
+                      Navigator.pop(ctx);
+                      _showDeleteConfirmDialog(context, theme);
+                    },
+                  ),
               ],
               const SizedBox(height: 8),
               // 取消按钮
@@ -703,7 +814,9 @@ class _PostItemState extends ConsumerState<PostItem> {
     final highlightColor = theme.colorScheme.tertiaryContainer.withValues(alpha: 0.5);
     final targetColor = widget.highlight
         ? Color.alphaBlend(highlightColor, backgroundColor)
-        : backgroundColor;
+        : post.isDeleted
+            ? theme.colorScheme.errorContainer.withValues(alpha: 0.15)
+            : backgroundColor;
 
     return VisibilityDetector(
       key: Key('post-visibility-${post.id}'),
@@ -715,7 +828,9 @@ class _PostItemState extends ConsumerState<PostItem> {
         }
       },
       child: RepaintBoundary(
-        child: Container(
+        child: Opacity(
+          opacity: post.isDeleted ? 0.6 : 1.0,
+          child: Container(
           constraints: const BoxConstraints(minHeight: 80),
           decoration: BoxDecoration(
             color: targetColor,
@@ -1186,6 +1301,7 @@ class _PostItemState extends ConsumerState<PostItem> {
               ),
             ],
           ),
+        ),
         ),
       ),
     );

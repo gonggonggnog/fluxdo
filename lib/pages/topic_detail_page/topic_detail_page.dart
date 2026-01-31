@@ -364,6 +364,11 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
     ref.read(topicDetailProvider(params).notifier).updatePostSolution(postId, accepted);
   }
 
+  void _handleRefreshPost(int postId) {
+    final params = TopicDetailParams(widget.topicId, postNumber: _scrollController.currentPostNumber, instanceId: _instanceId);
+    ref.read(topicDetailProvider(params).notifier).refreshPost(postId);
+  }
+
   void _shareTopic() {
     final user = ref.read(currentUserProvider).value;
     final username = user?.username ?? '';
@@ -1253,6 +1258,7 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
       onJumpToPost: _scrollToPost,
       onReply: _handleReply,
       onEdit: _handleEdit,
+      onRefreshPost: _handleRefreshPost,
       onVoteChanged: _handleVoteChanged,
       onNotificationLevelChanged: (level) => _handleNotificationLevelChanged(notifier, level),
       onSolutionChanged: _handleSolutionChanged,

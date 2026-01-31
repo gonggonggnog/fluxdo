@@ -1817,4 +1817,32 @@ class DiscourseService {
       return false;
     }
   }
+
+  /// 删除帖子
+  ///
+  /// [postId] 帖子 ID
+  /// 返回 true 表示成功
+  Future<bool> deletePost(int postId) async {
+    try {
+      await _dio.delete('/posts/$postId.json');
+      return true;
+    } catch (e) {
+      print('[DiscourseService] deletePost failed: $e');
+      return false;
+    }
+  }
+
+  /// 恢复已删除的帖子
+  ///
+  /// [postId] 帖子 ID
+  /// 返回 true 表示成功
+  Future<bool> recoverPost(int postId) async {
+    try {
+      await _dio.put('/posts/$postId/recover.json');
+      return true;
+    } catch (e) {
+      print('[DiscourseService] recoverPost failed: $e');
+      return false;
+    }
+  }
 }

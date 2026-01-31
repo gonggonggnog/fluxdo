@@ -362,6 +362,10 @@ class Post {
   final bool canAcceptAnswer;      // 当前用户是否可以接受此帖子为答案
   final bool canUnacceptAnswer;    // 当前用户是否可以取消接受
 
+  // 删除状态
+  final DateTime? deletedAt;       // 删除时间（不为空表示已删除）
+  final bool userDeleted;          // 是否是用户自己删除的
+
   Post({
     required this.id,
     this.name,
@@ -403,6 +407,8 @@ class Post {
     this.acceptedAnswer = false,
     this.canAcceptAnswer = false,
     this.canUnacceptAnswer = false,
+    this.deletedAt,
+    this.userDeleted = false,
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -461,6 +467,10 @@ class Post {
       acceptedAnswer: json['accepted_answer'] as bool? ?? false,
       canAcceptAnswer: json['can_accept_answer'] as bool? ?? false,
       canUnacceptAnswer: json['can_unaccept_answer'] as bool? ?? false,
+      deletedAt: json['deleted_at'] != null
+          ? TimeUtils.parseUtcTime(json['deleted_at'] as String)
+          : null,
+      userDeleted: json['user_deleted'] as bool? ?? false,
     );
   }
 
@@ -472,6 +482,9 @@ class Post {
     }
     return avatarTemplate.replaceAll('{size}', '$size');
   }
+
+  /// 帖子是否已被删除
+  bool get isDeleted => deletedAt != null;
 }
 
 /// 帖子流信息
