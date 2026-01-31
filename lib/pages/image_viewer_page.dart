@@ -275,66 +275,93 @@ class _ImageViewerPageState extends State<ImageViewerPage>
   Widget build(BuildContext context) {
     // 内存图片模式
     if (widget.imageBytes != null) {
-      return ExtendedImageSlidePage(
-        slideAxis: SlideAxis.both,
-        slideType: SlideType.onlyImage,
-        slidePageBackgroundHandler: (Offset offset, Size pageSize) {
-          double progress = offset.distance / (pageSize.height);
-          return Colors.black.withValues(alpha: (1.0 - progress).clamp(0.0, 1.0));
-        },
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          body: Stack(
-            children: [
-              GestureDetector(
-                onTap: _toggleUI,
-                child: ExtendedImage.memory(
-                  widget.imageBytes!,
-                  width: double.infinity,
-                  height: double.infinity,
-                  fit: BoxFit.contain,
-                  mode: ExtendedImageMode.gesture,
-                  enableSlideOutPage: true,
-                  initGestureConfigHandler: (state) => GestureConfig(
-                    minScale: 0.9, animationMinScale: 0.7, maxScale: 5.0, animationMaxScale: 5.5,
-                    speed: 1.0, inertialSpeed: 500.0, initialScale: 1.0, inPageView: false,
-                  ),
-                  onDoubleTap: (state) {
-                    _hideUI();
-                    handleDoubleTapZoom(state);
-                  },
-                ),
-              ),
-              IgnorePointer(
-                ignoring: !_showUI,
-                child: AnimatedOpacity(
-                  opacity: _showUI ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 200),
-                  child: Stack(
-                    children: [
-                      Positioned(
-                        top: MediaQuery.of(context).padding.top + 10,
-                        right: 20,
-                        child: CircleAvatar(
-                          backgroundColor: Colors.black.withValues(alpha: 0.5),
-                          child: IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.of(context).pop()),
-                        ),
-                      ),
-                      Positioned(
-                        top: MediaQuery.of(context).padding.top + 10,
-                        left: 20,
-                        child: CircleAvatar(
-                          backgroundColor: Colors.black.withValues(alpha: 0.5),
-                          child: _isSaving
-                              ? const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)))
-                              : IconButton(icon: const Icon(Icons.save_alt, color: Colors.white), onPressed: _saveMemoryImage),
-                        ),
-                      ),
-                    ],
+      return AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+        child: ExtendedImageSlidePage(
+          slideAxis: SlideAxis.both,
+          slideType: SlideType.onlyImage,
+          slidePageBackgroundHandler: (Offset offset, Size pageSize) {
+            double progress = offset.distance / (pageSize.height);
+            return Colors.black.withValues(alpha: (1.0 - progress).clamp(0.0, 1.0));
+          },
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: Stack(
+              children: [
+                GestureDetector(
+                  onTap: _toggleUI,
+                  child: ExtendedImage.memory(
+                    widget.imageBytes!,
+                    width: double.infinity,
+                    height: double.infinity,
+                    fit: BoxFit.contain,
+                    mode: ExtendedImageMode.gesture,
+                    enableSlideOutPage: true,
+                    initGestureConfigHandler: (state) => GestureConfig(
+                      minScale: 0.9, animationMinScale: 0.7, maxScale: 5.0, animationMaxScale: 5.5,
+                      speed: 1.0, inertialSpeed: 500.0, initialScale: 1.0, inPageView: false,
+                    ),
+                    onDoubleTap: (state) {
+                      _hideUI();
+                      handleDoubleTapZoom(state);
+                    },
                   ),
                 ),
-              ),
-            ],
+                IgnorePointer(
+                  ignoring: !_showUI,
+                  child: AnimatedOpacity(
+                    opacity: _showUI ? 1.0 : 0.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Stack(
+                      children: [
+                        // Top Gradient for status bar visibility
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: 100,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topCenter,
+                                end: Alignment.bottomCenter,
+                                colors: [
+                                  Colors.black.withValues(alpha: 0.6),
+                                  Colors.transparent,
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        Positioned(
+                          top: MediaQuery.of(context).padding.top + 10,
+                          right: 20,
+                          child: CircleAvatar(
+                            backgroundColor: Colors.black.withValues(alpha: 0.5),
+                            child: IconButton(icon: const Icon(Icons.close, color: Colors.white), onPressed: () => Navigator.of(context).pop()),
+                          ),
+                        ),
+                        Positioned(
+                          top: MediaQuery.of(context).padding.top + 10,
+                          left: 20,
+                          child: CircleAvatar(
+                            backgroundColor: Colors.black.withValues(alpha: 0.5),
+                            child: _isSaving
+                                ? const Padding(padding: EdgeInsets.all(12), child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)))
+                                : IconButton(icon: const Icon(Icons.save_alt, color: Colors.white), onPressed: _saveMemoryImage),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       );
@@ -343,13 +370,19 @@ class _ImageViewerPageState extends State<ImageViewerPage>
     final images = widget.galleryImages ?? [widget.imageUrl!];
     final bool isGallery = images.length > 1;
 
-    return ExtendedImageSlidePage(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: ExtendedImageSlidePage(
       slideAxis: SlideAxis.both,
       slideType: SlideType.onlyImage,
       // 只处理背景透明度，不干预关闭逻辑，让库自己处理 pop
       slidePageBackgroundHandler: (Offset offset, Size pageSize) {
         double progress = offset.distance / (pageSize.height);
-        return Colors.black.withOpacity((1.0 - progress).clamp(0.0, 1.0));
+        return Colors.black.withValues(alpha:(1.0 - progress).clamp(0.0, 1.0));
       },
       child: Scaffold(
         backgroundColor: Colors.transparent,
@@ -477,6 +510,26 @@ class _ImageViewerPageState extends State<ImageViewerPage>
                 duration: const Duration(milliseconds: 200),
                 child: Stack(
                   children: [
+                    // Top Gradient for status bar visibility
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: 100,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha:0.6),
+                              Colors.transparent,
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    
                     // 顶部指示器 (仅画廊模式)
                     if (isGallery)
                       Positioned(
@@ -568,6 +621,6 @@ class _ImageViewerPageState extends State<ImageViewerPage>
           ],
         ),
       ),
-    );
+    ));
   }
 }
