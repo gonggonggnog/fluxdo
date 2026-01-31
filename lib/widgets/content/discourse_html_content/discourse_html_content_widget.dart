@@ -18,6 +18,7 @@ import 'builders/table_builder.dart';
 import 'builders/details_builder.dart';
 import 'builders/footnote_builder.dart';
 import 'builders/poll_builder.dart';
+import 'builders/math_builder.dart';
 
 /// Discourse HTML 内容渲染 Widget
 /// 封装了所有自定义渲染逻辑
@@ -490,6 +491,24 @@ class _DiscourseHtmlContentState extends State<DiscourseHtmlContent> {
         theme: theme,
         element: element,
         htmlBuilder: htmlBuilder,
+      );
+    }
+
+    // 处理块级数学公式 (div.math)
+    if (element.localName == 'div' && element.classes.contains('math')) {
+      return buildMathBlock(
+        context: context,
+        theme: theme,
+        element: element,
+      );
+    }
+
+    // 处理行内数学公式 (span.math)
+    if (element.localName == 'span' && element.classes.contains('math')) {
+      return buildInlineMath(
+        context: context,
+        theme: theme,
+        element: element,
       );
     }
 
