@@ -192,13 +192,6 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
   void _onScroll() {
     if (_isRefreshing) return;
 
-    if (_scrollController.scrollController.hasClients) {
-      final isScrolled = _scrollController.scrollController.offset > 0;
-      if (isScrolled != _isScrolledUnder) {
-        setState(() => _isScrolledUnder = isScrolled);
-      }
-    }
-
     _scheduleCheckTitleVisibility();
     _scrollController.handleScroll();
 
@@ -226,16 +219,22 @@ class _TopicDetailPageState extends ConsumerState<TopicDetailPage> with WidgetsB
       if (_hasFirstPost && !_showTitle) {
         setState(() => _showTitle = true);
       }
+      final shouldScrolledUnder = !_hasFirstPost || true;
+      if (_isScrolledUnder != shouldScrolledUnder) {
+        setState(() => _isScrolledUnder = shouldScrolledUnder);
+      }
     } else {
       final box = ctx.findRenderObject() as RenderBox?;
       if (box != null && box.hasSize) {
         final position = box.localToGlobal(Offset.zero);
         final headerVisible = position.dy >= barHeight;
-
-        if (headerVisible && _showTitle) {
-          setState(() => _showTitle = false);
-        } else if (!headerVisible && !_showTitle) {
-          setState(() => _showTitle = true);
+        final shouldShowTitle = !headerVisible;
+        final shouldScrolledUnder = !_hasFirstPost || !headerVisible;
+        if (shouldShowTitle != _showTitle || shouldScrolledUnder != _isScrolledUnder) {
+          setState(() {
+            _showTitle = shouldShowTitle;
+            _isScrolledUnder = shouldScrolledUnder;
+          });
         }
       }
     }
