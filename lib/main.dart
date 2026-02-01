@@ -21,6 +21,7 @@ import 'services/cf_challenge_logger.dart';
 import 'services/update_service.dart';
 import 'services/update_checker_helper.dart';
 import 'models/user.dart';
+import 'constants.dart';
 
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/theme_provider.dart';
@@ -32,6 +33,9 @@ import 'widgets/layout/adaptive_navigation.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 初始化 User-Agent（获取 WebView UA 并移除 wv 标识）
+  await AppConstants.initUserAgent();
 
   // 初始化语法高亮服务（预热 Isolate Worker 和字体）
   HighlighterService.instance.initialize(); // 不需要 await，后台初始化
