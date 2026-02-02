@@ -1,0 +1,128 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+env:
+  IS_STABLE: ${{ !contains(github.ref, '-') }}
+
+jobs:
+  build:
+    # 根据平台自动切换执行环境
+    runs-on: ${{ matrix.platform == 'ios' && 'macos-latest' || 'ubuntu-latest' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: android-arm64
+            rust-target: aarch64-linux-android
+            ndk-target: arm64-v8a
+            flutter-target: android-arm64
+            apk-suffix: arm64-v8a
+          - platform: android-arm32
+            rust-target: armv7-linux-androideabi
+            ndk-target: armeabi-v7a
+            flutter-target: android-arm
+            apk-suffix: armeabi-v7a
+          - platform: ios
+            rust-target: aarch64-apple-ios
+            flutter-target: ios
+            artifact-name: ios-app
+
+    steps:
+      # 1. 基础设置
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      # 2. 环境设置
+      - name: Setup Java (Android Only)
+        if: startsWith(matrix.platform, 'android')
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      # 3. Rust 设置
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Rust target
+        run: rustup target add ${{ matrix.rust-target }}
+
+      # 4. Android 专属依赖与签名准备
+      - name: Setup Android NDK & Signing
+        if: startsWith(matrix.platform, 'android')
+        run: |
+          echo "Installing cargo-ndk..."
+          cargo install cargo-ndk
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > android/app/upload-keystore.jks
+          echo "${{ secrets.ANDROID_KEY_PROPERTIES }}" > android/key.properties
+
+      # 5. 构建 Rust 核心库
+      - name: Build DOH Proxy (Rust)
+        working-directory: core/doh_proxy
+        run: |
+          if [[ "${{ matrix.platform }}" == "ios" ]]; then
+            # iOS 构建静态库 (.a)
+            cargo build --release --target ${{ matrix.rust-target }}
+          else
+            # Android 构建动态库 (.so)
+            cargo ndk -t ${{ matrix.ndk-target }} --platform 28 build --release --features ech
+          fi
+
+      # 6. 复制库文件到 Flutter 对应目录
+      - name: Copy Rust library
+        run: |
+          if [[ "${{ matrix.platform }}" == "ios" ]]; then
+            # 假设你的 iOS 侧通过 framework 或直接链接 .a 文件
+            # 你需要根据项目的实际链接方式修改路径
+            mkdir -p ios/Libs
+            cp core/doh_proxy/target/${{ matrix.rust-target }}/release/libdoh_proxy.a ios/Libs/
+          else
+            mkdir -p android/app/src/main/jniLibs/${{ matrix.ndk-target }}
+            cp core/doh_proxy/target/${{ matrix.rust-target }}/release/libdoh_proxy.so android/app/src/main/jniLibs/${{ matrix.ndk-target }}/
+          fi
+
+      - name: Copy CA certificate
+        run: |
+          mkdir -p android/app/src/main/res/raw
+          cp core/doh_proxy/certs/ca.der android/app/src/main/res/raw/proxy_ca.der
+          # iOS 证书通常需要打包进 Assets，根据你项目逻辑添加
+
+      # 7. 构建 Flutter 应用
+      - name: Install Flutter dependencies
+        run: flutter pub get
+
+      - name: Build App
+        run: |
+          if [[ "${{ matrix.platform }}" == "ios" ]]; then
+            # --no-codesign 关键参数：跳过代码签名
+            flutter build ios --release --no-codesign
+            # 打包成 Payload 文件夹以供下载后重签
+            mkdir -p build/ios/iphoneos/Payload
+            cp -r build/ios/iphoneos/Runner.app build/ios/iphoneos/Payload/
+            cd build/ios/iphoneos && zip -r ../../../fluxdo-ios-unsigned.ipa Payload
+          else
+            flutter build apk --release --target-platform ${{ matrix.flutter-target }} --dart-define=cronetHttpNoPlay=true
+            mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/fluxdo-${{ matrix.apk-suffix }}-release.apk
+          fi
+
+      # 8. 上传产物
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          path: |
+            build/app/outputs/flutter-apk/*.apk
+            fluxdo-ios-unsigned.ipa
+
+  # ... changelog 和 upload 任务保持不变，只需确保 upload 任务能处理 .ipa 文件即可 ...
